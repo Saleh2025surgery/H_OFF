@@ -1,10 +1,11 @@
-
 import streamlit as st
 from datetime import datetime
-import yagmail
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-EMAIL_SENDER = "your_email@gmail.com"
-EMAIL_PASSWORD = "your_app_password"
+EMAIL_SENDER = "your_email@gmail.com"  # <-- change this
+EMAIL_PASSWORD = "your_app_password"   # <-- paste Gmail app password
 EMAIL_RECEIVER = "bashammakh97.2.5@gmail.com"
 
 st.set_page_config(page_title="Multi-Patient Surgical Handoff", layout="centered")
@@ -113,13 +114,16 @@ if st.session_state.patients:
 
     if st.button("📤 Submit All to Email"):
         handoff_text = "\n".join([format_patient(p) for p in st.session_state.patients])
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_SENDER
+        msg["To"] = EMAIL_RECEIVER
+        msg["Subject"] = "📝 Full Surgical Handoff"
+        msg.attach(MIMEText(handoff_text, "plain"))
+
         try:
-            yag = yagmail.SMTP(EMAIL_SENDER, EMAIL_PASSWORD)
-            yag.send(
-                to=EMAIL_RECEIVER,
-                subject="📝 Full Surgical Handoff",
-                contents=handoff_text
-            )
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+                smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+                smtp.send_message(msg)
             st.success("✅ Email sent with full handoff summary.")
             st.session_state.patients = []
         except Exception as e:
